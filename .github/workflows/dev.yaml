@@ -1,0 +1,138 @@
+name: Terraform - CI
+'on': push
+env:
+  TF_VERSION: 1.1.5
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: "${{ secrets.AWS_ACCESS_KEY_ID }}"
+  AWS_SECRET_ACCESS_KEY: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+  PREV_SHA: "${{ github.event.before }}"
+  SHA: "${{ github.sha }}"
+
+jobs:
+  check_changes:
+    name: check_changes
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set branch name
+      uses: nelonoel/branch-name@v1.0.1
+    - name: check_changes_dev_us_east_1
+      id: check_changes_dev_us_east_1
+      run: |
+        . ./bin/check_changes.sh development us-east-1
+        echo "$CHANGED"
+        echo "::set-output name=DEV_US_EAST_1::$CHANGED"
+      shell: bash
+    - name: check_changes_prod_us_east_1
+      id: check_changes_prod_us_east_1
+      run: |
+        . ./bin/check_changes.sh production us-east-1
+        echo "$CHANGED"
+        echo "::set-output name=PROD_US_EAST_1::$CHANGED"
+      shell: bash
+    - name: check_changes_dev_us_west_1
+      id: check_changes_dev_us_west_1
+      run: |
+        . ./bin/check_changes.sh development us-west-1
+        echo "$CHANGED"
+        echo "::set-output name=DEV_US_WEST_1::$CHANGED"
+      shell: bash
+    - name: check_changes_prod_us_west_1
+      id: check_changes_prod_us_west_1
+      run: |
+        . ./bin/check_changes.sh production us-west-1
+        echo "$CHANGED"
+        echo "::set-output name=PROD_US_WEST_1::$CHANGED"
+      shell: bash
+    outputs:
+      DEV_US_EAST_1: "${{ steps.check_changes_dev_us_east_1.outputs.DEV_US_EAST_1}}"
+      PROD_US_EAST_1: "${{ steps.check_changes_prod_us_east_1.outputs.PROD_US_EAST_1}}"
+      DEV_US_WEST_1: "${{ steps.check_changes_dev_us_west_1.outputs.DEV_US_WEST_1}}"
+      PROD_US_WEST_1: "${{ steps.check_changes_prod_us_west_1.outputs.PROD_US_WEST_1}}"
+
+  development_us_east_1:
+    if: needs.check_changes.outputs.DEV_US_EAST_1 == 'true'
+    runs-on: ubuntu-latest
+    name: development_us_east_1
+    needs:
+    - check_changes
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set branch name
+      uses: nelonoel/branch-name@v1.0.1
+    - name: Set up tfswitch
+      run: |
+        curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/release/install.sh | sudo bash
+        tfswitch $TF_VERSION
+    - name: development_us_east_1
+      run: ./bin/deploy.sh development us-east-1
+      shell: bash
+
+  production_us_east_1:
+    if: needs.check_changes.outputs.PROD_US_EAST_1 == 'true'
+    runs-on: ubuntu-latest
+    name: production_us_east_1
+    needs:
+    - development_us_east_1
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set branch name
+      uses: nelonoel/branch-name@v1.0.1
+    - name: Set up tfswitch
+      run: | 
+        curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/release/install.sh | sudo bash
+        tfswitch $TF_VERSION
+    - name: production_us_east_1
+      run: ./bin/deploy.sh production us-east-1
+      shell: bash
+
+  development_us_west_1:
+      if: needs.check_changes.outputs.DEV_US_WEST_1 == 'true'
+      runs-on: ubuntu-latest
+      name: development_us_west_1
+      needs:
+      - check_changes
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set branch name
+        uses: nelonoel/branch-name@v1.0.1
+      - name: Set up tfswitch
+        run: |
+          curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/release/install.sh | sudo bash
+          tfswitch $TF_VERSION
+      - name: development_us_west_1
+        run: ./bin/deploy.sh development us-west-1
+        shell: bash
+
+  production_us_west_1:
+    if: needs.check_changes.outputs.PROD_US_WEST_1 == 'true'
+    runs-on: ubuntu-latest
+    name: production_us_west_1
+    needs:
+    - development_us_west_1
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set branch name
+      uses: nelonoel/branch-name@v1.0.1
+    - name: Set up tfswitch
+      run: | 
+        curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/release/install.sh | sudo bash
+        tfswitch $TF_VERSION
+    - name: production_us_west_1
+      run: ./bin/deploy.sh production us-west-1
+      shell: bash

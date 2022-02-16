@@ -1,2 +1,4 @@
-# tf-repo-example-multi-env
-Example of folder structure for hosting multiple terraform environments with automated pipelines in a single github repository.
+# Terraform Multiple Environments in a Single Repo
+
+This is an example of how to use a single Github Repository with automated pipelines through Github Actions to run multiple Terraform environments.
+
