@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+ENV=$1
+REGION=$2
+
 cd infrastructure/${ENV}/${REGION}
 
 terraform init
